@@ -1,0 +1,20 @@
+FILE (GLOB_RECURSE test_SRCS *.cpp *.cxx *.cc *.C *.c *.h *.hpp)
+
+SET (test_LIBS ${LOG4CXX_LIBRARIES})
+SET (test_BIN ${PROJECT_NAME}-unittests)
+
+INCLUDE_DIRECTORIES (${MAINFOLDER}/src)
+LINK_DIRECTORIES(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+ADD_EXECUTABLE(${test_BIN} ${test_SRCS})
+TARGET_LINK_LIBRARIES(${test_BIN} ${test_LIBS})
+
+#ADD_CUSTOM_TARGET(check ALL "${MAINFOLDER}/bin/${test_BIN}" DEPENDS ${test_BIN} COMMENT "Executing unit tests..." VERBATIM SOURCES ${test_SRCS})
+#ADD_CUSTOM_TARGET(test "${MAINFOLDER}/bin/${test_BIN}" DEPENDS ${test_BIN} COMMENT "Executing unit tests..." VERBATIM SOURCES ${test_SRCS})
+
+MACRO (CREATE_TEST TARGET)
+    ADD_TEST (NAME ${TARGET} COMMAND $<TARGET_FILE:${TARGET}> ${ARGV})
+ENDMACRO (CREATE_TEST)
+
+#TODO nie -h, ale cos innego
+CREATE_TEST(${test_BIN} "-h")

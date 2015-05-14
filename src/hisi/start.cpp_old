@@ -1,0 +1,114 @@
+
+#include "start.hpp"
+#include "hisi/make/configure.hpp"
+#include "hisi/core/pos/PositionRuleFunc.hpp"
+
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <iostream>
+#include <stdexcept>
+
+
+using namespace std;
+
+// command starter class
+struct StarterBase;
+
+// helper types
+using key_t_ = vector<string>;
+using command_t_ = pair<StarterBase*, string>;
+using commands_vector = vector<pair<key_t_, command_t_>>;
+using starter_map = unordered_map<string, StarterBase*>;
+
+// transform commands vector co starter map
+starter_map commandsToStarters(const commands_vector& vec) {
+    starter_map starters;
+    for(auto& com : vec) {
+        for(auto& key : com.first) {
+            starters[key] = com.second.first;
+        }
+    }
+    return std::move(starters);
+}
+
+// impl. of starter class
+struct StarterBase
+{
+    virtual void start(int argv ,char* argc[]) = 0;
+    virtual ~StarterBase() {};
+};
+
+// starter for help
+struct HelpStarter : public StarterBase
+{
+    void commands(const commands_vector& commands)
+    { commands_ = &commands; }
+
+    void start(int argv ,char* argc[]) override
+    {
+        cout << "help: " << endl;
+        for(auto& com : *commands_) {
+            for(auto& key : com.first) {
+                cout << key << ", ";
+            }
+            cout << " ---- " << com.second.second << endl;
+        }
+    }
+
+private:
+    const commands_vector* commands_ = nullptr;
+};
+
+
+// starter for ga with rule = RuleFunc
+template<class RuleFunc>
+struct RuleStarter : public StarterBase
+{
+    void start(int argv ,char* argc[]) override
+    {
+        hisi::configure<RuleFunc>(argv - 1, argc + 1);
+    }
+};
+
+// create starters;
+// HELP
+HelpStarter helpStarter;
+// GA
+//RuleStarter<hisi::NullRuleFunc<>> nulStarter;
+RuleStarter<hisi::PositionRuleFunc<hisi::pos::OffsetDepthRule>> nulStarter;
+
+// commands:
+commands_vector commands
+{
+    {{"-h", "-help", "help"}, {&helpStarter, "help"}},
+    {{"nul"}, {&nulStarter, "null desc"}},
+    //{{"double"}, {&doubleStarter, "hihi"}},
+};
+
+
+// ----------------------------  start  ---------------------------------------
+namespace hisi
+{
+    namespace start
+    {
+
+void start (int argv ,char* argc[])
+{
+    helpStarter.commands(commands);
+    if(argv <= 1) {
+        cout << "za malo args" << endl;
+        return;
+    }
+
+    auto starters = commandsToStarters(commands);
+    try {
+        starters.at(argc[1])->start(argv, argc);
+    } catch(out_of_range ex) {
+        cout << "nieznana koneda" << endl;
+    }
+
+}
+
+    } /* start */
+} /* hisi */
